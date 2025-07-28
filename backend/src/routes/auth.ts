@@ -51,12 +51,17 @@ router.post('/register', async (req, res) => {
     const verification_token = crypto.randomBytes(32).toString('hex');
 
     // Insert user
+  console.log('Attempting to insert user with data:', { email, first_name,
+  last_name, phone });
+
+
 const result = await db.run(`
     INSERT INTO users (email, password_hash, first_name, last_name, phone, 
     verification_token)
     VALUES (?, ?, ?, ?, ?, ?)
   `, [email, password_hash, first_name, last_name, phone,
   verification_token]);
+  console.log('Database insert result:', result);
 
   if (!result || typeof result.lastID === 'undefined') {
     console.error('Database insert failed:', result);
@@ -66,6 +71,7 @@ const result = await db.run(`
     });
   }
 const userId = result.lastID;
+  console.log('User created successfully with ID:', userId);
 
     // Send verification email
     try {
