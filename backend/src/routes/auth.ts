@@ -55,8 +55,9 @@ router.post('/register', async (req, res) => {
     INSERT INTO users (email, password_hash, first_name, last_name, phone, 
   verification_token)
     VALUES (?, ?, ?, ?, ?, ?)
-  `, [email, hashedPassword, first_name, last_name, phone,
   verificationToken]);
+  `, [email, password_hash, first_name, last_name, phone,
+  verification_token]);
 
   if (!result || typeof result.lastID === 'undefined') {
     console.error('Database insert failed:', result);
