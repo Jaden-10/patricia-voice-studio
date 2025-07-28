@@ -51,8 +51,8 @@ class TwilioService {
       console.error('Failed to send SMS:', error);
       
       // Log failed notification
-      await this.logNotification(notification, false, null, error.message);
-      
+ await this.logNotification(notification, false, null, String(error
+  && (error as any).message || 'Unknown error'));      
       return false;
     }
   }

@@ -106,9 +106,6 @@ class GoogleCalendarService {
             displayName: `${recurringBooking.first_name} ${recurringBooking.last_name}`
           }
         ],
-        recurrence: [
-          `RRULE:FREQ=${frequency};BYDAY=${dayOfWeek};UNTIL=${endRecurrence.toISOString().replace(/[-:]/g, '').split('.')[0]}Z`
-        ]
       };
 
       const response = await this.calendar.events.insert({
