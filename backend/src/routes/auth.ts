@@ -51,11 +51,10 @@ router.post('/register', async (req, res) => {
     const verification_token = crypto.randomBytes(32).toString('hex');
 
     // Insert user
- const result = await db.run(`
+const result = await db.run(`
     INSERT INTO users (email, password_hash, first_name, last_name, phone, 
-  verification_token)
+    verification_token)
     VALUES (?, ?, ?, ?, ?, ?)
-  verificationToken]);
   `, [email, password_hash, first_name, last_name, phone,
   verification_token]);
 

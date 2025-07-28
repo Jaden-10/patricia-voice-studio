@@ -1,28 +1,21 @@
-    windowMs: 15 * 60 * 1000,
-    max: 100,
-    message: 'Too many requests from this IP, please try again later.',
-    trustProxy: true,
-    standardHeaders: true,
-    legacyHeaders: false
-  });import express from 'express';
-import cors from 'cors';
-import helmet from 'helmet';
-import rateLimit from 'express-rate-limit';
-import dotenv from 'dotenv';
-import { authRoutes } from './routes/auth';
-import { bookingRoutes } from './routes/bookings';
-import { userRoutes } from './routes/users';
-import { adminRoutes } from './routes/admin';
-import { paymentRoutes } from './routes/payments';
-import { notificationRoutes } from './routes/notifications';
-import recurringRoutes from './routes/recurring';
-import makeupRoutes from './routes/makeup';
-import eventsRoutes from './routes/events';
-import { initDatabase, createTables } from './models/database';
-import { schedulerService } from './services/scheduler';
+ import express from 'express';
+  import cors from 'cors';
+  import helmet from 'helmet';
+  import rateLimit from 'express-rate-limit';
+  import dotenv from 'dotenv';
+  import { authRoutes } from './routes/auth';
+  import { bookingRoutes } from './routes/bookings';
+  import { userRoutes } from './routes/users';
+  import { adminRoutes } from './routes/admin';
+  import { paymentRoutes } from './routes/payments';
+  import { notificationRoutes } from './routes/notifications';
+  import recurringRoutes from './routes/recurring';
+  import makeupRoutes from './routes/makeup';
+  import eventsRoutes from './routes/events';
+  import { initDatabase, createTables } from './models/database';
+  import { schedulerService } from './services/scheduler';
 
-dotenv.config();
-
+  dotenv.config();
   const app = express();
   app.set('trust proxy', true);
 const PORT = process.env.PORT || 5000;
