@@ -1,0 +1,37 @@
+# Dependencies
+  node_modules/
+  */node_modules/
+
+  # Environment files
+  .env
+  .env.local
+  .env.production
+  backend/.env
+
+  # Database files
+  *.sqlite
+  *.db
+  backend/data/
+
+  # Build outputs
+  dist/
+  build/
+  */dist/
+  */build/
+
+  # Logs
+  *.log
+  logs/
+
+  # OS files
+  .DS_Store
+  Thumbs.db
+
+  # IDE files
+  .vscode/
+  .idea/
+
+  # Temporary files
+  tmp/
+  temp/
+
