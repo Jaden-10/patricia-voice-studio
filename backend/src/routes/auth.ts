@@ -6,11 +6,15 @@ import { getDatabase } from '../models/database';
 
 const router = express.Router();
 
-// Rate limiting for auth endpoints
+// Rate limiting for auth endpoints - configured for Railway proxy
 const authLimiter = rateLimit({
   windowMs: 15 * 60 * 1000, // 15 minutes
   max: 5, // limit each IP to 5 requests per windowMs
-  message: 'Too many authentication attempts, please try again later.'
+  message: 'Too many authentication attempts, please try again later.',
+  standardHeaders: true,
+  legacyHeaders: false,
+  // Skip rate limiting for local development
+  skip: (req) => req.ip === '127.0.0.1' || req.ip === '::1'
 });
 
 // Register endpoint
@@ -49,8 +53,8 @@ router.post('/register', authLimiter, async (req, res) => {
 
     // Insert user
     const result = await db.run(`
-      INSERT INTO users (email, password, first_name, last_name, role)
-      VALUES (?, ?, ?, ?, 'student')
+      INSERT INTO users (email, password_hash, first_name, last_name, role)
+      VALUES (?, ?, ?, ?, 'client')
     `, [email, hashedPassword, first_name, last_name]);
 
     if (!result.lastID) {
@@ -62,7 +66,7 @@ router.post('/register', authLimiter, async (req, res) => {
       { 
         id: result.lastID, 
         email, 
-        role: 'student' 
+        role: 'client' 
       },
       process.env.JWT_SECRET || 'fallback-secret-key',
       { expiresIn: '24h' }
@@ -76,7 +80,7 @@ router.post('/register', authLimiter, async (req, res) => {
           email,
           first_name,
           last_name,
-          role: 'student'
+          role: 'client'
         },
         token
       },
@@ -108,7 +112,7 @@ router.post('/login', authLimiter, async (req, res) => {
 
     // Find user
     const user = await db.get(
-      'SELECT id, email, password, first_name, last_name, role FROM users WHERE email = ?',
+      'SELECT id, email, password_hash, first_name, last_name, role FROM users WHERE email = ?',
       [email]
     );
 
@@ -120,7 +124,7 @@ router.post('/login', authLimiter, async (req, res) => {
     }
 
     // Verify password
-    const isValidPassword = await bcrypt.compare(password, user.password);
+    const isValidPassword = await bcrypt.compare(password, user.password_hash);
     if (!isValidPassword) {
       return res.status(401).json({
         success: false,
