@@ -12,7 +12,9 @@
   import recurringRoutes from './routes/recurring';
   import makeupRoutes from './routes/makeup';
   import eventsRoutes from './routes/events';
+  import emergencyRoutes from './routes/emergency';
   import { initDatabase, createTables } from './models/database';
+  import { seedDatabase } from './utils/seed';
   import { schedulerService } from './services/scheduler';
 
   dotenv.config();
@@ -54,6 +56,16 @@ const startServer = async () => {
     await initDatabase();
     await createTables();
     console.log('Database initialized successfully');
+    
+    // Automatically seed database with admin account and initial data
+    console.log('Running database seeding...');
+    try {
+      await seedDatabase();
+      console.log('Database seeding completed successfully');
+    } catch (seedError) {
+      console.error('Database seeding failed:', seedError);
+      console.log('Server will continue without seeding - admin account may need to be created manually');
+    }
 
     // Register routes after database is initialized
     app.use('/api/auth', authRoutes);
@@ -65,6 +77,7 @@ const startServer = async () => {
     app.use('/api/recurring', recurringRoutes);
     app.use('/api/makeup', makeupRoutes);
     app.use('/api/events', eventsRoutes);
+    app.use('/api/emergency', emergencyRoutes);
 
     // Error handling middleware
     app.use((err: any, req: express.Request, res: express.Response, next: express.NextFunction) => {

@@ -10,16 +10,16 @@ const seedDatabase = async (): Promise<void> => {
     const db = getDatabase();
 
     // Check if admin user already exists
-    const existingAdmin = await db.get('SELECT id FROM users WHERE role = \'admin\'');
+    const existingAdmin = await db.get('SELECT id FROM users WHERE email = ? AND role = ?', ['patricia@songbirdvoicestudio.com', 'admin']);
     
     if (!existingAdmin) {
       console.log('Creating admin user...');
       
-      // Create admin user (Patricia)
+      // Create admin user (Patricia) with exact credentials needed
       const adminPassword = 'admin123'; // Default password - should be changed
       const hashedPassword = await bcrypt.hash(adminPassword, 12);
       
-      await db.run(
+      const adminResult = await db.run(
         `INSERT INTO users (email, password_hash, first_name, last_name, phone, role, is_verified) 
          VALUES (?, ?, ?, ?, ?, ?, ?)`,
         [
@@ -27,16 +27,24 @@ const seedDatabase = async (): Promise<void> => {
           hashedPassword,
           'Patricia',
           'Freund',
-          '+1234567890',
+          '(858) 539-5946',
           'admin',
           true
         ]
       );
 
-      console.log('Admin user created:');
-      console.log('Email: patricia@songbirdvoicestudio.com');
-      console.log('Password: admin123');
-      console.log('IMPORTANT: Change this password after first login!');
+      if (adminResult && adminResult.lastID) {
+        console.log('✅ Admin user created successfully:');
+        console.log('   ID:', adminResult.lastID);
+        console.log('   Email: patricia@songbirdvoicestudio.com');
+        console.log('   Password: admin123');
+        console.log('   Role: admin');
+        console.log('   IMPORTANT: Change this password after first login!');
+      } else {
+        throw new Error('Failed to create admin user');
+      }
+    } else {
+      console.log('✅ Admin user already exists:', existingAdmin.id);
     }
 
     // Check if demo client exists
