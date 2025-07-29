@@ -2,8 +2,13 @@ import sqlite3 from 'sqlite3';
 import { promisify } from 'util';
 import path from 'path';
 
+export interface RunResult {
+  lastID: number;
+  changes: number;
+}
+
 export interface Database {
-  run: (sql: string, params?: any[]) => Promise<sqlite3.RunResult>;
+  run: (sql: string, params?: any[]) => Promise<RunResult>;
   get: (sql: string, params?: any[]) => Promise<any>;
   all: (sql: string, params?: any[]) => Promise<any[]>;
   close: () => Promise<void>;
@@ -35,9 +40,22 @@ export const initDatabase = async (): Promise<Database> => {
         return;
       }
 
-      // Promisify database methods
+      // Promisify database methods with proper handling for run method
       const dbWrapper: Database = {
-        run: promisify(database.run.bind(database)),
+        run: (sql: string, params?: any[]) => {
+          return new Promise((resolve, reject) => {
+            database.run(sql, params || [], function(err: Error | null) {
+              if (err) {
+                reject(err);
+              } else {
+                resolve({
+                  lastID: this.lastID,
+                  changes: this.changes
+                });
+              }
+            });
+          });
+        },
         get: promisify(database.get.bind(database)),
         all: promisify(database.all.bind(database)),
         close: promisify(database.close.bind(database))

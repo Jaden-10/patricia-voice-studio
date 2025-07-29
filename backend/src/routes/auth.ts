@@ -57,8 +57,9 @@ router.post('/register', authLimiter, async (req, res) => {
       VALUES (?, ?, ?, ?, 'client')
     `, [email, hashedPassword, first_name, last_name]);
 
-    if (!result.lastID) {
-      throw new Error('Failed to create user');
+    if (!result || typeof result.lastID !== 'number' || result.lastID <= 0) {
+      console.error('Database insert failed. Result:', result);
+      throw new Error('Failed to create user - database insert returned invalid result');
     }
 
     // Generate JWT token
@@ -89,9 +90,27 @@ router.post('/register', authLimiter, async (req, res) => {
 
   } catch (error) {
     console.error('Registration error:', error);
+    
+    // Handle specific database errors
+    if (error instanceof Error) {
+      if (error.message.includes('UNIQUE constraint failed')) {
+        return res.status(409).json({
+          success: false,
+          error: 'User with this email already exists'
+        });
+      }
+      
+      if (error.message.includes('database insert returned invalid result')) {
+        return res.status(500).json({
+          success: false,
+          error: 'Database error: Failed to create user account'
+        });
+      }
+    }
+    
     res.status(500).json({
       success: false,
-      error: 'Registration failed'
+      error: 'Registration failed. Please try again.'
     });
   }
 });
