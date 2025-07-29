@@ -29,7 +29,7 @@ const seedDatabase = async (): Promise<void> => {
           'Freund',
           '(858) 539-5946',
           'admin',
-          true
+          1  // Force verified as integer
         ]
       );
 
@@ -66,7 +66,7 @@ const seedDatabase = async (): Promise<void> => {
           'Client',
           '+1987654321',
           'client',
-          true
+          1  // Force verified as integer
         ]
       );
 
@@ -113,6 +113,11 @@ const seedDatabase = async (): Promise<void> => {
         [key, value, description]
       );
     }
+
+    // URGENT: Mark all existing users as verified to disable email verification
+    console.log('Marking all existing users as verified...');
+    await db.run('UPDATE users SET is_verified = 1 WHERE is_verified IS NULL OR is_verified = 0');
+    console.log('✅ All users marked as verified');
 
     console.log('Database seeding completed successfully!');
 

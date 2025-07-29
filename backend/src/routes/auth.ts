@@ -51,10 +51,10 @@ router.post('/register', authLimiter, async (req, res) => {
     const saltRounds = 12;
     const hashedPassword = await bcrypt.hash(password, saltRounds);
 
-    // Insert user
+    // Insert user with email automatically verified
     const result = await db.run(`
-      INSERT INTO users (email, password_hash, first_name, last_name, role)
-      VALUES (?, ?, ?, ?, 'client')
+      INSERT INTO users (email, password_hash, first_name, last_name, role, is_verified)
+      VALUES (?, ?, ?, ?, 'client', 1)
     `, [email, hashedPassword, first_name, last_name]);
 
     if (!result || typeof result.lastID !== 'number' || result.lastID <= 0) {

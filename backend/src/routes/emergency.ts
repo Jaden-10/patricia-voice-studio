@@ -33,7 +33,7 @@ router.post('/create-admin', async (req, res) => {
       'Freund',
       '(858) 539-5946',
       'admin',
-      true
+      1  // Force verified as integer
     ]);
     
     if (!result || typeof result.lastID !== 'number' || result.lastID <= 0) {
