@@ -283,11 +283,28 @@ export const createTables = async (): Promise<void> => {
   `).catch(() => {}); // Ignore error if column already exists
 
   await db.run(`
-    ALTER TABLE bookings ADD COLUMN google_calendar_id TEXT
+    ALTER TABLE bookings ADD COLUMN google_calendar_event_id TEXT
   `).catch(() => {}); // Ignore error if column already exists
 
   await db.run(`
-    ALTER TABLE recurring_bookings ADD COLUMN google_calendar_id TEXT
+    ALTER TABLE recurring_bookings ADD COLUMN google_calendar_event_id TEXT
+  `).catch(() => {}); // Ignore error if column already exists
+
+  // Add Google Calendar integration fields to users table
+  await db.run(`
+    ALTER TABLE users ADD COLUMN calendar_sync_enabled BOOLEAN DEFAULT 0
+  `).catch(() => {}); // Ignore error if column already exists
+
+  await db.run(`
+    ALTER TABLE users ADD COLUMN google_access_token TEXT
+  `).catch(() => {}); // Ignore error if column already exists
+
+  await db.run(`
+    ALTER TABLE users ADD COLUMN google_refresh_token TEXT
+  `).catch(() => {}); // Ignore error if column already exists
+
+  await db.run(`
+    ALTER TABLE users ADD COLUMN google_token_expiry INTEGER
   `).catch(() => {}); // Ignore error if column already exists
 
   // Studio events table
@@ -342,6 +359,20 @@ export const createTables = async (): Promise<void> => {
       updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
       FOREIGN KEY (booking_id) REFERENCES bookings (id) ON DELETE CASCADE,
       FOREIGN KEY (recurring_booking_id) REFERENCES recurring_bookings (id) ON DELETE CASCADE
+    )
+  `);
+
+  // Calendar sync log table for debugging
+  await db.run(`
+    CREATE TABLE IF NOT EXISTS calendar_sync_log (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      action TEXT NOT NULL,
+      booking_id INTEGER,
+      google_event_id TEXT,
+      status TEXT NOT NULL,
+      error_message TEXT,
+      sync_time DATETIME DEFAULT CURRENT_TIMESTAMP,
+      FOREIGN KEY (booking_id) REFERENCES bookings (id) ON DELETE SET NULL
     )
   `);
 

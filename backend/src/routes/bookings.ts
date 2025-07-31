@@ -8,6 +8,7 @@ import {
   enforceCancellationCharging 
 } from '../middleware/policies';
 import { CreateBookingData, Booking } from '../types';
+import { googleCalendarService } from '../services/googleCalendar';
 
 const router = express.Router();
 
@@ -117,10 +118,65 @@ router.post('/', authenticateToken, requireVerified, checkBlackoutDates, async (
       [req.user!.id, lessonDateTime.toISOString(), duration, price, notes]
     );
 
+    // Try to create Google Calendar event if sync is enabled
+    let googleEventId = null;
+    try {
+      const syncEnabled = await googleCalendarService.isCalendarSyncEnabled();
+      
+      if (syncEnabled && result.lastID) {
+        const user = await db.get('SELECT first_name, last_name, email FROM users WHERE id = ?', [req.user!.id]);
+        
+        const bookingDetails = {
+          id: result.lastID as number,
+          user_id: req.user!.id,
+          lesson_date: lessonDateTime.toISOString(),
+          duration,
+          client_name: `${user.first_name} ${user.last_name}`,
+          client_email: user.email,
+          notes
+        };
+
+        googleEventId = await googleCalendarService.createBookingEvent(bookingDetails);
+        
+        if (googleEventId) {
+          // Update booking with Google Calendar event ID
+          await db.run(
+            'UPDATE bookings SET google_calendar_event_id = ? WHERE id = ?',
+            [googleEventId, result.lastID]
+          );
+
+          // Log successful sync
+          await db.run(
+            'INSERT INTO calendar_sync_log (action, booking_id, google_event_id, status) VALUES (?, ?, ?, ?)',
+            ['create', result.lastID, googleEventId, 'success']
+          );
+        } else {
+          // Log failed sync
+          await db.run(
+            'INSERT INTO calendar_sync_log (action, booking_id, status, error_message) VALUES (?, ?, ?, ?)',
+            ['create', result.lastID, 'error', 'Failed to create Google Calendar event']
+          );
+        }
+      }
+    } catch (calendarError) {
+      console.error('Google Calendar sync error:', calendarError);
+      
+      // Log calendar error but don't fail the booking
+      if (result.lastID) {
+        await db.run(
+          'INSERT INTO calendar_sync_log (action, booking_id, status, error_message) VALUES (?, ?, ?, ?)',
+          ['create', result.lastID, 'error', calendarError.message]
+        );
+      }
+    }
+
     res.status(201).json({
       success: true,
-      message: 'Booking created successfully',
-      data: { bookingId: result.lastID }
+      message: 'Booking created successfully' + (googleEventId ? ' and added to calendar' : ''),
+      data: { 
+        bookingId: result.lastID,
+        calendarSynced: !!googleEventId
+      }
     });
 
   } catch (error) {
@@ -198,9 +254,51 @@ router.put('/:id', authenticateToken, requireVerified, checkReschedulePolicy, ch
       [newLessonDate.toISOString(), notes, booking.lesson_date, id]
     );
 
+    // Update Google Calendar event if it exists
+    let calendarUpdated = false;
+    try {
+      const syncEnabled = await googleCalendarService.isCalendarSyncEnabled();
+      
+      if (syncEnabled && booking.google_calendar_event_id) {
+        const user = await db.get('SELECT first_name, last_name, email FROM users WHERE id = ?', [req.user!.id]);
+        
+        const updatedBookingDetails = {
+          id: booking.id,
+          user_id: req.user!.id,
+          lesson_date: newLessonDate.toISOString(),
+          duration: booking.duration,
+          client_name: `${user.first_name} ${user.last_name}`,
+          client_email: user.email,
+          notes
+        };
+
+        calendarUpdated = await googleCalendarService.updateBookingEvent(
+          booking.google_calendar_event_id,
+          updatedBookingDetails
+        );
+        
+        // Log sync result
+        await db.run(
+          'INSERT INTO calendar_sync_log (action, booking_id, google_event_id, status, error_message) VALUES (?, ?, ?, ?, ?)',
+          ['update', id, booking.google_calendar_event_id, calendarUpdated ? 'success' : 'error', calendarUpdated ? null : 'Failed to update Google Calendar event']
+        );
+      }
+    } catch (calendarError) {
+      console.error('Google Calendar update error:', calendarError);
+      
+      // Log calendar error but don't fail the reschedule
+      await db.run(
+        'INSERT INTO calendar_sync_log (action, booking_id, google_event_id, status, error_message) VALUES (?, ?, ?, ?, ?)',
+        ['update', id, booking.google_calendar_event_id, 'error', calendarError.message]
+      );
+    }
+
     res.json({
       success: true,
-      message: 'Booking rescheduled successfully'
+      message: 'Booking rescheduled successfully' + (calendarUpdated ? ' and calendar updated' : ''),
+      data: {
+        calendarUpdated
+      }
     });
 
   } catch (error) {
@@ -232,13 +330,40 @@ router.delete('/:id', authenticateToken, requireVerified, checkCancellationPolic
     }
 
     await db.run(
-      'UPDATE bookings SET status = \'cancelled\', updated_at = CURRENT_TIMESTAMP WHERE id = ?',
+      'UPDATE bookings SET status = \'cancelled\', cancelled_at = CURRENT_TIMESTAMP, updated_at = CURRENT_TIMESTAMP WHERE id = ?',
       [id]
     );
 
+    // Delete Google Calendar event if it exists
+    let calendarDeleted = false;
+    try {
+      const syncEnabled = await googleCalendarService.isCalendarSyncEnabled();
+      
+      if (syncEnabled && booking.google_calendar_event_id) {
+        calendarDeleted = await googleCalendarService.deleteBookingEvent(booking.google_calendar_event_id);
+        
+        // Log sync result
+        await db.run(
+          'INSERT INTO calendar_sync_log (action, booking_id, google_event_id, status, error_message) VALUES (?, ?, ?, ?, ?)',
+          ['delete', id, booking.google_calendar_event_id, calendarDeleted ? 'success' : 'error', calendarDeleted ? null : 'Failed to delete Google Calendar event']
+        );
+      }
+    } catch (calendarError) {
+      console.error('Google Calendar deletion error:', calendarError);
+      
+      // Log calendar error but don't fail the cancellation
+      await db.run(
+        'INSERT INTO calendar_sync_log (action, booking_id, google_event_id, status, error_message) VALUES (?, ?, ?, ?, ?)',
+        ['delete', id, booking.google_calendar_event_id, 'error', calendarError.message]
+      );
+    }
+
     res.json({
       success: true,
-      message: 'Booking cancelled successfully'
+      message: 'Booking cancelled successfully' + (calendarDeleted ? ' and removed from calendar' : ''),
+      data: {
+        calendarDeleted
+      }
     });
 
   } catch (error) {

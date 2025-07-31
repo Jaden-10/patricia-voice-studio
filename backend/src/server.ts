@@ -13,9 +13,11 @@
   import makeupRoutes from './routes/makeup';
   import eventsRoutes from './routes/events';
   import emergencyRoutes from './routes/emergency';
+  import calendarRoutes from './routes/calendar';
   import { initDatabase, createTables } from './models/database';
   import { seedDatabase } from './utils/seed';
   import { schedulerService } from './services/scheduler';
+  import { calendarSyncService } from './services/calendarSync';
 
   dotenv.config();
   const app = express();
@@ -78,6 +80,7 @@ const startServer = async () => {
     app.use('/api/makeup', makeupRoutes);
     app.use('/api/events', eventsRoutes);
     app.use('/api/emergency', emergencyRoutes);
+    app.use('/api/calendar', calendarRoutes);
 
     // Error handling middleware
     app.use((err: any, req: express.Request, res: express.Response, next: express.NextFunction) => {
@@ -95,6 +98,10 @@ const startServer = async () => {
     
     // Initialize notification scheduler
     console.log('Initializing notification scheduler...');
+    
+    // Initialize Google Calendar sync service
+    console.log('Initializing Google Calendar sync service...');
+    calendarSyncService.start();
     
     app.listen(PORT, () => {
       console.log(`Server running on port ${PORT}`);
