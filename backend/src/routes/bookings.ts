@@ -158,14 +158,15 @@ router.post('/', authenticateToken, requireVerified, checkBlackoutDates, async (
           );
         }
       }
-    } catch (calendarError) {
-      console.error('Google Calendar sync error:', calendarError);
+    } catch (calendarError: unknown) {
+      const errorMessage = calendarError instanceof Error ? calendarError.message : String(calendarError);
+      console.error('Google Calendar sync error:', errorMessage);
       
       // Log calendar error but don't fail the booking
       if (result.lastID) {
         await db.run(
           'INSERT INTO calendar_sync_log (action, booking_id, status, error_message) VALUES (?, ?, ?, ?)',
-          ['create', result.lastID, 'error', calendarError.message]
+          ['create', result.lastID, 'error', errorMessage]
         );
       }
     }
@@ -283,13 +284,14 @@ router.put('/:id', authenticateToken, requireVerified, checkReschedulePolicy, ch
           ['update', id, booking.google_calendar_event_id, calendarUpdated ? 'success' : 'error', calendarUpdated ? null : 'Failed to update Google Calendar event']
         );
       }
-    } catch (calendarError) {
-      console.error('Google Calendar update error:', calendarError);
+    } catch (calendarError: unknown) {
+      const errorMessage = calendarError instanceof Error ? calendarError.message : String(calendarError);
+      console.error('Google Calendar update error:', errorMessage);
       
       // Log calendar error but don't fail the reschedule
       await db.run(
         'INSERT INTO calendar_sync_log (action, booking_id, google_event_id, status, error_message) VALUES (?, ?, ?, ?, ?)',
-        ['update', id, booking.google_calendar_event_id, 'error', calendarError.message]
+        ['update', id, booking.google_calendar_event_id, 'error', errorMessage]
       );
     }
 
@@ -348,13 +350,14 @@ router.delete('/:id', authenticateToken, requireVerified, checkCancellationPolic
           ['delete', id, booking.google_calendar_event_id, calendarDeleted ? 'success' : 'error', calendarDeleted ? null : 'Failed to delete Google Calendar event']
         );
       }
-    } catch (calendarError) {
-      console.error('Google Calendar deletion error:', calendarError);
+    } catch (calendarError: unknown) {
+      const errorMessage = calendarError instanceof Error ? calendarError.message : String(calendarError);
+      console.error('Google Calendar deletion error:', errorMessage);
       
       // Log calendar error but don't fail the cancellation
       await db.run(
         'INSERT INTO calendar_sync_log (action, booking_id, google_event_id, status, error_message) VALUES (?, ?, ?, ?, ?)',
-        ['delete', id, booking.google_calendar_event_id, 'error', calendarError.message]
+        ['delete', id, booking.google_calendar_event_id, 'error', errorMessage]
       );
     }
 

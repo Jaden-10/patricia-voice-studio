@@ -79,11 +79,12 @@ class GoogleCalendarService {
       console.log('✅ Google Calendar service initialized successfully');
       return true;
 
-    } catch (error) {
-      console.error('❌ Failed to initialize Google Calendar service:', error);
+    } catch (error: unknown) {
+      const errorMessage = error instanceof Error ? error.message : String(error);
+      console.error('❌ Failed to initialize Google Calendar service:', errorMessage);
       
       // Try to refresh token if it expired
-      if (error.code === 401) {
+      if (error && typeof error === 'object' && 'code' in error && error.code === 401) {
         return await this.refreshAccessToken();
       }
       
@@ -136,8 +137,9 @@ class GoogleCalendarService {
       console.log('✅ Google Calendar authentication successful');
       return true;
 
-    } catch (error) {
-      console.error('❌ Google Calendar authentication failed:', error);
+    } catch (error: unknown) {
+      const errorMessage = error instanceof Error ? error.message : String(error);
+      console.error('❌ Google Calendar authentication failed:', errorMessage);
       return false;
     }
   }
@@ -165,8 +167,9 @@ class GoogleCalendarService {
       console.log('✅ Google Calendar token refreshed successfully');
       return true;
 
-    } catch (error) {
-      console.error('❌ Failed to refresh Google Calendar token:', error);
+    } catch (error: unknown) {
+      const errorMessage = error instanceof Error ? error.message : String(error);
+      console.error('❌ Failed to refresh Google Calendar token:', errorMessage);
       return false;
     }
   }
@@ -206,11 +209,12 @@ class GoogleCalendarService {
       console.log(`Found ${busyTimes.length} busy periods in Google Calendar`);
       return busyTimes;
 
-    } catch (error) {
-      console.error('Error fetching Google Calendar busy times:', error);
+    } catch (error: unknown) {
+      const errorMessage = error instanceof Error ? error.message : String(error);
+      console.error('Error fetching Google Calendar busy times:', errorMessage);
       
       // Try to refresh token and retry once
-      if (error.code === 401 && await this.refreshAccessToken()) {
+      if (error && typeof error === 'object' && 'code' in error && error.code === 401 && await this.refreshAccessToken()) {
         return await this.getBusyTimes(startDate, endDate);
       }
       
@@ -271,11 +275,12 @@ class GoogleCalendarService {
       console.log(`✅ Created Google Calendar event: ${response.data.id}`);
       return response.data.id;
 
-    } catch (error) {
-      console.error('❌ Failed to create Google Calendar event:', error);
+    } catch (error: unknown) {
+      const errorMessage = error instanceof Error ? error.message : String(error);
+      console.error('❌ Failed to create Google Calendar event:', errorMessage);
       
       // Try to refresh token and retry once  
-      if (error.code === 401 && await this.refreshAccessToken()) {
+      if (error && typeof error === 'object' && 'code' in error && error.code === 401 && await this.refreshAccessToken()) {
         return await this.createBookingEvent(booking);
       }
       
@@ -330,11 +335,12 @@ class GoogleCalendarService {
       console.log(`✅ Updated Google Calendar event: ${googleEventId}`);
       return true;
 
-    } catch (error) {
-      console.error('❌ Failed to update Google Calendar event:', error);
+    } catch (error: unknown) {
+      const errorMessage = error instanceof Error ? error.message : String(error);
+      console.error('❌ Failed to update Google Calendar event:', errorMessage);
       
       // Try to refresh token and retry once
-      if (error.code === 401 && await this.refreshAccessToken()) {
+      if (error && typeof error === 'object' && 'code' in error && error.code === 401 && await this.refreshAccessToken()) {
         return await this.updateBookingEvent(googleEventId, booking);
       }
       
@@ -367,11 +373,12 @@ class GoogleCalendarService {
       console.log(`✅ Deleted Google Calendar event: ${googleEventId}`);
       return true;
 
-    } catch (error) {
-      console.error('❌ Failed to delete Google Calendar event:', error);
+    } catch (error: unknown) {
+      const errorMessage = error instanceof Error ? error.message : String(error);
+      console.error('❌ Failed to delete Google Calendar event:', errorMessage);
       
       // Try to refresh token and retry once
-      if (error.code === 401 && await this.refreshAccessToken()) {
+      if (error && typeof error === 'object' && 'code' in error && error.code === 401 && await this.refreshAccessToken()) {
         return await this.deleteBookingEvent(googleEventId);
       }
       
@@ -393,8 +400,9 @@ class GoogleCalendarService {
 
       return result?.calendar_sync_enabled === 1;
 
-    } catch (error) {
-      console.error('Error checking calendar sync status:', error);
+    } catch (error: unknown) {
+      const errorMessage = error instanceof Error ? error.message : String(error);
+      console.error('Error checking calendar sync status:', errorMessage);
       return false;
     }
   }
@@ -482,8 +490,9 @@ class GoogleCalendarService {
 
       return slots.filter(slot => slot.available);
 
-    } catch (error) {
-      console.error('Error generating available slots:', error);
+    } catch (error: unknown) {
+      const errorMessage = error instanceof Error ? error.message : String(error);
+      console.error('Error generating available slots:', errorMessage);
       return [];
     }
   }
@@ -516,8 +525,9 @@ class GoogleCalendarService {
         eventCount: eventCount?.count || 0
       };
 
-    } catch (error) {
-      console.error('Error getting sync status:', error);
+    } catch (error: unknown) {
+      const errorMessage = error instanceof Error ? error.message : String(error);
+      console.error('Error getting sync status:', errorMessage);
       return {
         enabled: false,
         initialized: false

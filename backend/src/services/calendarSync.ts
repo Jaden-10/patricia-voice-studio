@@ -101,12 +101,13 @@ class CalendarSyncService {
 
             syncCount++;
           }
-        } catch (error) {
-          console.error(`Sync error for booking ${booking.id}:`, error);
+        } catch (error: unknown) {
+          const errorMessage = error instanceof Error ? error.message : String(error);
+          console.error(`Sync error for booking ${booking.id}:`, errorMessage);
           
           await db.run(
             'INSERT INTO calendar_sync_log (action, booking_id, status, error_message) VALUES (?, ?, ?, ?)',
-            ['sync_create', booking.id, 'error', error.message]
+            ['sync_create', booking.id, 'error', errorMessage]
           );
         }
       }
@@ -115,8 +116,9 @@ class CalendarSyncService {
         console.log(`✅ Background sync: ${syncCount} bookings synced to calendar`);
       }
 
-    } catch (error) {
-      console.error('Background sync error:', error);
+    } catch (error: unknown) {
+      const errorMessage = error instanceof Error ? error.message : String(error);
+      console.error('Background sync error:', errorMessage);
     }
   }
 
@@ -190,21 +192,23 @@ class CalendarSyncService {
           // Add small delay to respect API rate limits
           await new Promise(resolve => setTimeout(resolve, 500));
 
-        } catch (error) {
-          console.error(`Full sync error for booking ${booking.id}:`, error);
+        } catch (error: unknown) {
+          const errorMessage = error instanceof Error ? error.message : String(error);
+          console.error(`Full sync error for booking ${booking.id}:`, errorMessage);
           errorCount++;
           
           await db.run(
             'INSERT INTO calendar_sync_log (action, booking_id, status, error_message) VALUES (?, ?, ?, ?)',
-            ['full_sync', booking.id, 'error', error.message]
+            ['full_sync', booking.id, 'error', errorMessage]
           );
         }
       }
 
       console.log(`✅ Full sync completed: ${syncCount} synced, ${errorCount} errors`);
 
-    } catch (error) {
-      console.error('Full sync error:', error);
+    } catch (error: unknown) {
+      const errorMessage = error instanceof Error ? error.message : String(error);
+      console.error('Full sync error:', errorMessage);
     }
   }
 

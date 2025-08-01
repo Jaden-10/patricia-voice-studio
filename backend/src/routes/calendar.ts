@@ -16,8 +16,9 @@ router.get('/auth/url', authenticateToken, requireRole('admin'), async (req, res
       message: 'Google Calendar authentication URL generated'
     });
 
-  } catch (error) {
-    console.error('Error generating auth URL:', error);
+  } catch (error: unknown) {
+    const errorMessage = error instanceof Error ? error.message : String(error);
+    console.error('Error generating auth URL:', errorMessage);
     res.status(500).json({
       success: false,
       error: 'Failed to generate authentication URL'
@@ -46,8 +47,9 @@ router.get('/auth/callback', async (req, res) => {
       res.redirect('/admin/settings?calendar_error=auth_failed');
     }
 
-  } catch (error) {
-    console.error('Error handling calendar auth callback:', error);
+  } catch (error: unknown) {
+    const errorMessage = error instanceof Error ? error.message : String(error);
+    console.error('Error handling calendar auth callback:', errorMessage);
     res.redirect('/admin/settings?calendar_error=callback_error');
   }
 });
@@ -62,8 +64,9 @@ router.get('/status', authenticateToken, requireRole('admin'), async (req, res) 
       data: status
     });
 
-  } catch (error) {
-    console.error('Error getting calendar status:', error);
+  } catch (error: unknown) {
+    const errorMessage = error instanceof Error ? error.message : String(error);
+    console.error('Error getting calendar status:', errorMessage);
     res.status(500).json({
       success: false,
       error: 'Failed to get calendar status'
@@ -87,8 +90,9 @@ router.post('/sync/toggle', authenticateToken, requireRole('admin'), async (req,
       message: `Calendar sync ${enabled ? 'enabled' : 'disabled'} successfully`
     });
 
-  } catch (error) {
-    console.error('Error toggling calendar sync:', error);
+  } catch (error: unknown) {
+    const errorMessage = error instanceof Error ? error.message : String(error);
+    console.error('Error toggling calendar sync:', errorMessage);
     res.status(500).json({
       success: false,
       error: 'Failed to toggle calendar sync'
@@ -121,8 +125,9 @@ router.get('/availability/:date', async (req, res) => {
       }
     });
 
-  } catch (error) {
-    console.error('Error getting availability:', error);
+  } catch (error: unknown) {
+    const errorMessage = error instanceof Error ? error.message : String(error);
+    console.error('Error getting availability:', errorMessage);
     res.status(500).json({
       success: false,
       error: 'Failed to get availability'
@@ -188,14 +193,15 @@ router.post('/sync/manual', authenticateToken, requireRole('admin'), async (req,
           );
         }
 
-      } catch (error) {
-        console.error(`Error syncing booking ${booking.id}:`, error);
+      } catch (error: unknown) {
+        const errorMessage = error instanceof Error ? error.message : String(error);
+        console.error(`Error syncing booking ${booking.id}:`, errorMessage);
         errorCount++;
         
         // Log error
         await db.run(
           'INSERT INTO calendar_sync_log (action, booking_id, status, error_message) VALUES (?, ?, ?, ?)',
-          ['create', booking.id, 'error', error.message]
+          ['create', booking.id, 'error', errorMessage]
         );
       }
     }
@@ -210,8 +216,9 @@ router.post('/sync/manual', authenticateToken, requireRole('admin'), async (req,
       message: `Manual sync completed. ${syncedCount} events created, ${errorCount} errors.`
     });
 
-  } catch (error) {
-    console.error('Error during manual sync:', error);
+  } catch (error: unknown) {
+    const errorMessage = error instanceof Error ? error.message : String(error);
+    console.error('Error during manual sync:', errorMessage);
     res.status(500).json({
       success: false,
       error: 'Manual sync failed'
@@ -240,8 +247,9 @@ router.get('/logs', authenticateToken, requireRole('admin'), async (req, res) =>
       data: logs
     });
 
-  } catch (error) {
-    console.error('Error getting sync logs:', error);
+  } catch (error: unknown) {
+    const errorMessage = error instanceof Error ? error.message : String(error);
+    console.error('Error getting sync logs:', errorMessage);
     res.status(500).json({
       success: false,
       error: 'Failed to get sync logs'
@@ -270,8 +278,9 @@ router.post('/disconnect', authenticateToken, requireRole('admin'), async (req, 
       message: 'Google Calendar disconnected successfully'
     });
 
-  } catch (error) {
-    console.error('Error disconnecting Google Calendar:', error);
+  } catch (error: unknown) {
+    const errorMessage = error instanceof Error ? error.message : String(error);
+    console.error('Error disconnecting Google Calendar:', errorMessage);
     res.status(500).json({
       success: false,
       error: 'Failed to disconnect Google Calendar'
