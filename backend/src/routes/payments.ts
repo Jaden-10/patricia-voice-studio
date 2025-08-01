@@ -1,6 +1,7 @@
 import express from 'express';
 import { getDatabase } from '../models/database';
-import { authenticateToken, AuthenticatedRequest, requireVerified } from '../middleware/auth';
+import { authenticateToken, AuthenticatedRequest, requireVerified, requireRole } from '../middleware/auth';
+import { stripeService } from '../services/stripe';
 
 const router = express.Router();
 
@@ -138,6 +139,105 @@ router.post('/zelle-info', authenticateToken, requireVerified, async (req: Authe
       success: false,
       message: 'Failed to generate Zelle payment info'
     });
+  }
+});
+
+// Create Stripe payment intent
+router.post('/stripe/create-payment-intent', authenticateToken, requireVerified, async (req: AuthenticatedRequest, res) => {
+  try {
+    const { booking_id } = req.body;
+
+    if (!booking_id) {
+      return res.status(400).json({
+        success: false,
+        message: 'Booking ID is required'
+      });
+    }
+
+    const db = getDatabase();
+    
+    // Get booking details
+    const booking = await db.get(`
+      SELECT b.*, u.first_name, u.last_name, u.email 
+      FROM bookings b
+      JOIN users u ON b.user_id = u.id
+      WHERE b.id = ? AND b.user_id = ?
+    `, [booking_id, req.user!.id]);
+
+    if (!booking) {
+      return res.status(404).json({
+        success: false,
+        message: 'Booking not found'
+      });
+    }
+
+    // Check if payment already exists
+    const existingPayment = await db.get(
+      'SELECT id FROM payments WHERE booking_id = ? AND status IN (?, ?)',
+      [booking_id, 'completed', 'pending']
+    );
+
+    if (existingPayment) {
+      return res.status(400).json({
+        success: false,
+        message: 'Payment already exists for this booking'
+      });
+    }
+
+    // Create payment intent
+    const paymentResult = await stripeService.createPaymentIntent({
+      amount: Math.round(booking.price * 100), // Convert to cents
+      bookingId: booking_id,
+      clientEmail: booking.email,
+      clientName: `${booking.first_name} ${booking.last_name}`,
+      lessonDate: booking.lesson_date,
+      duration: booking.duration
+    });
+
+    if (!paymentResult.success) {
+      return res.status(500).json({
+        success: false,
+        message: paymentResult.error || 'Failed to create payment intent'
+      });
+    }
+
+    res.json({
+      success: true,
+      data: {
+        clientSecret: paymentResult.clientSecret,
+        paymentIntentId: paymentResult.paymentIntentId,
+        amount: booking.price
+      }
+    });
+
+  } catch (error: unknown) {
+    const errorMessage = error instanceof Error ? error.message : String(error);
+    console.error('Create payment intent error:', errorMessage);
+    res.status(500).json({
+      success: false,
+      message: 'Failed to create payment intent'
+    });
+  }
+});
+
+// Stripe webhook endpoint
+router.post('/stripe/webhook', express.raw({ type: 'application/json' }), async (req, res) => {
+  try {
+    const signature = req.headers['stripe-signature'] as string;
+    const body = req.body.toString();
+
+    const result = await stripeService.handleWebhook(body, signature);
+
+    if (result.success) {
+      res.json({ received: true });
+    } else {
+      res.status(400).json({ error: result.error });
+    }
+
+  } catch (error: unknown) {
+    const errorMessage = error instanceof Error ? error.message : String(error);
+    console.error('Webhook error:', errorMessage);
+    res.status(400).json({ error: 'Webhook failed' });
   }
 });
 

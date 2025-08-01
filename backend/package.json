@@ -28,6 +28,7 @@
     "node-cron": "^3.0.3",
     "nodemailer": "^7.0.5",
     "sqlite3": "^5.1.7",
+    "stripe": "^14.21.0",
     "twilio": "^5.7.3"
   },
   "devDependencies": {

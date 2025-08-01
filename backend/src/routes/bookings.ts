@@ -176,7 +176,11 @@ router.post('/', authenticateToken, requireVerified, checkBlackoutDates, async (
       message: 'Booking created successfully' + (googleEventId ? ' and added to calendar' : ''),
       data: { 
         bookingId: result.lastID,
-        calendarSynced: !!googleEventId
+        amount: price,
+        duration: duration,
+        lessonDate: lessonDateTime.toISOString(),
+        calendarSynced: !!googleEventId,
+        paymentRequired: true
       }
     });
 

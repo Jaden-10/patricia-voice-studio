@@ -9,6 +9,7 @@
   import { adminRoutes } from './routes/admin';
   import { paymentRoutes } from './routes/payments';
   import { notificationRoutes } from './routes/notifications';
+  import { contactRoutes } from './routes/contact';
   import recurringRoutes from './routes/recurring';
   import makeupRoutes from './routes/makeup';
   import eventsRoutes from './routes/events';
@@ -76,6 +77,7 @@ const startServer = async () => {
     app.use('/api/admin', adminRoutes);
     app.use('/api/payments', paymentRoutes);
     app.use('/api/notifications', notificationRoutes);
+    app.use('/api/contact', contactRoutes);
     app.use('/api/recurring', recurringRoutes);
     app.use('/api/makeup', makeupRoutes);
     app.use('/api/events', eventsRoutes);
